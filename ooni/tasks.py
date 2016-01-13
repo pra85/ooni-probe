@@ -12,6 +12,8 @@ class BaseTask(object):
 
     _running = None
 
+    shouldReschedule = True
+
     def __init__(self):
         """
         If you want to schedule a task multiple times, remember to create fresh
@@ -72,8 +74,7 @@ class TaskWithTimeout(BaseTask):
     def _timedOut(self):
         """Internal method for handling timeout failure"""
         if self._running:
-            self._failed(e.TaskTimedOut)
-            self._running.cancel()
+            self._running.errback(e.TaskTimedOut())
 
     def _cancelTimer(self):
         if self._timer.active():
@@ -120,6 +121,9 @@ class Measurement(TaskWithTimeout):
             start_time = otime.epochToUTC(self.testInstance._start_time)
             self.testInstance.report['test_start_time'] = start_time
 
+        if hasattr(self.testInstance, "shouldReschedule"):
+            self.shouldReschedule = self.testInstance.shouldReschedule
+
         self.testInstance.setUp()
 
         self.netTestMethod = getattr(self.testInstance, test_method)
@@ -139,7 +143,7 @@ class Measurement(TaskWithTimeout):
         pass
 
     def failed(self, failure):
-        pass
+        self.testInstance.failed(failure)
 
     def run(self):
         return self.netTestMethod()

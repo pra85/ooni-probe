@@ -614,6 +614,8 @@ class NetTestCase(object):
 
     * localOptions: contains the parsed command line arguments.
 
+    * shouldReschedule: if in case of failure the test should be rescheduled.
+
     Quirks:
     Every class that is prefixed with test *must* return a
     twisted.internet.defer.Deferred.
@@ -622,6 +624,8 @@ class NetTestCase(object):
     author = "Jane Doe <foo@example.com>"
     version = "0.0.0"
     description = "Sorry, this test has no description :("
+
+    shouldReschedule = True
 
     inputs = None
     inputFile = None

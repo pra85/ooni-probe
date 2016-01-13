@@ -37,7 +37,7 @@ class TaskManager(object):
         self._active_tasks.remove(task)
         self.failures = self.failures + 1
 
-        if task.failures <= self.retries:
+        if task.failures <= self.retries and task.shouldReschedule:
             log.debug("Rescheduling...")
             self._tasks = itertools.chain(makeIterable(task), self._tasks)
 
@@ -191,7 +191,10 @@ class MeasurementManager(LinkedTaskManager):
         log.debug("%s" % result)
 
     def failed(self, failure, measurement):
-        pass
+        log.debug("Failed to run measurement %s" % measurement)
+        log.debug(failure)
+        if config.advanced.debug:
+            log.failure(failure)
 
 
 class ReportEntryManager(LinkedTaskManager):
