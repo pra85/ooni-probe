@@ -3,11 +3,10 @@ from twisted.python import usage
 from twisted.web.client import Agent, readBody
 from ooni.templates.process import ProcessTest
 from ooni.utils import log
-from ooni.errors import handleAllFailures, failureToString
+from ooni.errors import handleAllFailures, failureToString, CommandNotFound
 
 import distutils.spawn
 import re
-
 
 class UsageOptions(usage.Options):
     optParameters = [
@@ -31,16 +30,20 @@ class OpenVPNTest(ProcessTest):
 
     name = "OpenVPN Client Test"
     description = "Connects to an OpenVPN server and does a HTTP GET for the specified URL"
-    author = "srvetus "
+    author = "srvetus"
     version = "0.0.2"
-    timeout = 20
+    timeout = 40
     usageOptions = UsageOptions
     requiredOptions = ['url', 'openvpn-config']
     requiresRoot = True
+    shouldReschedule = False
 
     def setUp(self):
         self.bootstrapped = defer.Deferred()
-        self.command = [distutils.spawn.find_executable("openvpn")]
+        openvpn_path = distutils.spawn.find_executable("openvpn")
+        if not openvpn_path:
+            raise CommandNotFound()
+        self.command = [openvpn_path]
         self.exited = False
         self.url = self.localOptions.get('url')
 
@@ -57,15 +60,6 @@ class OpenVPNTest(ProcessTest):
             self.processDirector.transport.signalProcess('TERM')
             self.exited = True
 
-    def inConnectionLost(self):
-            """Monkeypatch inConnectionLost to log failure if the process ends
-            unexpectedly before OpenVPN bootstraps.
-            """
-            log.debug("inConnectionLost")
-
-            if not self.bootstrapped.called:
-                self.bootstrapped.errback(Exception("openvpn_exited_unexpectedly"))
-
     def processExited(self, reason):
             """Monkeypatch processExited to log failure if the process ends
             unexpectedly before OpenVPN bootstraps.
@@ -79,7 +73,8 @@ class OpenVPNTest(ProcessTest):
 
 
     def handleRead(self, stdout=None, stderr=None):
-        """handleRead is called with each chunk of data from stdout and stderr
+        """
+        handleRead is called with each chunk of data from stdout and stderr
 
         stdout only contains the latest data chunk, self.processDirector.stdout
         contains the combined stdout data.
@@ -100,6 +95,9 @@ class OpenVPNTest(ProcessTest):
                 log.debug("OpenVPN connection successful")
                 self.processDirector.cancelTimer()
                 self.bootstrapped.callback("bootstrapped")
+
+    def failed(self, failure):
+        self.bootstrapped.errback(failure.value)
 
     def test_openvpn_circumvent(self):
 
@@ -127,8 +125,7 @@ class OpenVPNTest(ProcessTest):
         log.debug("Spawning OpenVPN")
         self.d = self.run(self.command)
 
-        # Monkeypatch inConnectionLost and processExited to log when OpenVPN exits early
-        self.processDirector.inConnectionLost = self.inConnectionLost
+        # Monkeypatch processExited to log when OpenVPN exits early
         self.processDirector.processExited = self.processExited
 
         # Try to make a request when the OpenVPN connection successfully bootstraps
