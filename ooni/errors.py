@@ -20,67 +20,6 @@ from txsocksx.errors import TTLExpired, CommandNotSupported
 
 from socket import gaierror
 
-known_failures = [
-    (ConnectionRefusedError, 'connection_refused_error'),
-    (ConnectionLost, 'connection_lost_error'),
-    (CancelledError, 'task_timed_out'),
-    (gaierror, 'address_family_not_supported_error'),
-    (DNSLookupError, 'dns_lookup_error'),
-    (TCPTimedOutError, 'tcp_timed_out_error'),
-    (ResponseNeverReceived, 'response_never_received'),
-    (DeferTimeoutError, 'deferred_timeout_error'),
-    (GenericTimeoutError, 'generic_timeout_error'),
-    (MethodsNotAcceptedError, 'socks_methods_not_supported'),
-    (AddressNotSupported, 'socks_address_not_supported'),
-    (NetworkUnreachable, 'socks_network_unreachable'),
-    (ConnectionError, 'socks_connect_error'),
-    (ConnectionLostEarly, 'socks_connection_lost_early'),
-    (ConnectionNotAllowed, 'socks_connection_not_allowed'),
-    (NoAcceptableMethods, 'socks_no_acceptable_methods'),
-    (ServerFailure, 'socks_server_failure'),
-    (HostUnreachable, 'socks_host_unreachable'),
-    (ConnectionRefused, 'socks_connection_refused'),
-    (TTLExpired, 'socks_ttl_expired'),
-    (CommandNotSupported, 'socks_command_not_supported'),
-    (SOCKSError, 'socks_error'),
-    (ProcessDone, 'process_done'),
-    (ConnectionDone, 'connection_done'),
-    (ConnectError, 'connect_error'),
-]
-
-def handleAllFailures(failure):
-    """
-    Trap all the known Failures and we return a string that
-    represents the failure. Any unknown Failures will be reraised and
-    returned by failure.trap().
-    """
-
-    failure.trap(*[failure_type for failure_type, _ in known_failures])
-    return failureToString(failure)
-
-
-def failureToString(failure):
-    """
-    Given a failure instance return a string representing the kind of error
-    that occurred.
-
-    Args:
-
-        failure: a :class:twisted.internet.error instance
-
-    Returns:
-
-        A string representing the HTTP response error message.
-    """
-
-    for failure_type, failure_string in known_failures:
-        if isinstance(failure.value, failure_type):
-            if failure_string:
-                return failure_string
-            else:
-                # Failure without a corresponding failure message
-                return 'unknown_failure %s' % str(failure.value)
-
 class DirectorException(Exception):
     pass
 
@@ -277,3 +216,69 @@ class ProtocolAlreadyRegistered(Exception):
 
 class LibraryNotInstalledError(Exception):
     pass
+
+class CommandNotFound(Exception):
+    pass
+
+known_failures = [
+    (ConnectionRefusedError, 'connection_refused_error'),
+    (ConnectionLost, 'connection_lost_error'),
+    (CancelledError, 'task_timed_out'),
+    (gaierror, 'address_family_not_supported_error'),
+    (DNSLookupError, 'dns_lookup_error'),
+    (TCPTimedOutError, 'tcp_timed_out_error'),
+    (ResponseNeverReceived, 'response_never_received'),
+    (DeferTimeoutError, 'deferred_timeout_error'),
+    (GenericTimeoutError, 'generic_timeout_error'),
+    (MethodsNotAcceptedError, 'socks_methods_not_supported'),
+    (AddressNotSupported, 'socks_address_not_supported'),
+    (NetworkUnreachable, 'socks_network_unreachable'),
+    (ConnectionError, 'socks_connect_error'),
+    (ConnectionLostEarly, 'socks_connection_lost_early'),
+    (ConnectionNotAllowed, 'socks_connection_not_allowed'),
+    (NoAcceptableMethods, 'socks_no_acceptable_methods'),
+    (ServerFailure, 'socks_server_failure'),
+    (HostUnreachable, 'socks_host_unreachable'),
+    (ConnectionRefused, 'socks_connection_refused'),
+    (TTLExpired, 'socks_ttl_expired'),
+    (CommandNotSupported, 'socks_command_not_supported'),
+    (SOCKSError, 'socks_error'),
+    (ProcessDone, 'process_done'),
+    (ConnectionDone, 'connection_done'),
+    (ConnectError, 'connect_error'),
+    (TaskTimedOut, 'task_timed_out')
+]
+
+def handleAllFailures(failure):
+    """
+    Trap all the known Failures and we return a string that
+    represents the failure. Any unknown Failures will be reraised and
+    returned by failure.trap().
+    """
+
+    failure.trap(*[failure_type for failure_type, _ in known_failures])
+    return failureToString(failure)
+
+
+def failureToString(failure):
+    """
+    Given a failure instance return a string representing the kind of error
+    that occurred.
+
+    Args:
+
+        failure: a :class:twisted.internet.error instance
+
+    Returns:
+
+        A string representing the HTTP response error message.
+    """
+
+    for failure_type, failure_string in known_failures:
+        if isinstance(failure.value, failure_type):
+            if failure_string:
+                return failure_string
+            else:
+                # Failure without a corresponding failure message
+                return 'unknown_failure %s' % str(failure.value)
+    return 'unknown_failure %s' % str(failure.value)
